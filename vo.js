@@ -33,45 +33,70 @@ VO.assert = function assert(predicate)
     }
 };
 
+const valuePrototype =
+{
+    constructor: function Value()
+    {
+        if (!(this instanceof Value))
+        {
+            return new Value();
+        }
+    },
+    equals(that)
+    {
+        if (this === that)
+        {
+            return VO.true;
+        }
+        return VO.false;
+    }
+};
+
+const typePrototype =
+{
+    constructor: function Type()
+    {
+        if (!(this instanceof Type))
+        {
+            return new Type();
+        }
+    },
+    hasType(type)
+    {
+        for (let entry of Object.entries(type.prototype)
+                                .filter(entry => entry[1] instanceof Function))
+        {
+            if (!(this[entry[0]] instanceof Function))
+            {
+                return VO.false;
+            }
+        }
+        if (type.prototype.distinguished !== undefined)
+        {
+            if (this.distinguished !== type.prototype.distinguished)
+            {
+                return VO.false;
+            }
+        }
+        return VO.true;
+    }
+};
+
 VO.Value = (function (self = {})
 {
     self = Object.assign(self,
-        {
-            constructor: function Value()
-            {
-                if (!(this instanceof Value))
-                {
-                    return new Value();
-                }
-            },
-            equals(that)
-            {
-                if (this === that)
-                {
-                    return VO.true;
-                }
-                return VO.false;
-            },
-            hasType(type)
-            {
-                for (let entry of Object.entries(type.prototype)
-                                        .filter(entry => entry[1] instanceof Function))
-                {
-                    if (!(this[entry[0]] instanceof Function))
-                    {
-                        return VO.false;
-                    }
-                }
-                if (type.prototype.distinguished !== undefined)
-                {
-                    if (this.distinguished !== type.prototype.distinguished)
-                    {
-                        return VO.false;
-                    }
-                }
-                return VO.true;
-            }
-        }
+        typePrototype,
+        valuePrototype
+    );
+    self.constructor.prototype = self;
+    return self.constructor;
+})();
+
+VO.Type = (function (self = {})
+{
+    self = Object.assign(self,
+        typePrototype,
+        valuePrototype
     );
     self.constructor.prototype = self;
     return self.constructor;
@@ -103,14 +128,17 @@ VO.Data = (function (self = {})
 VO.Void = (function (self = {})
 {
     self = Object.assign(self,
-        VO.Data.prototype,
+        VO.Type.prototype,
         {
             distinguished: ordinal(),
             constructor: function Void()
             {
+                if (!(this instanceof Void))
+                {
+                    return new Void();
+                }
                 if (VO.void === undefined)
                 {
-                    this._value = undefined;
                     VO.void = deepFreeze(this);
                 }
                 return VO.void;
@@ -354,12 +382,24 @@ VO.String = (function (self = {})
 
 VO.selfTest = (function ()
 {
+    const type = new VO.Type();
     const value = new VO.Value();
     const data = new VO.Data();
     const sampleString = new VO.String("Hello, World!");
     return function selfTest()
     {
+        // Type
+        VO.assert(type.hasType(VO.Type));
+        VO.assert(type.hasType(VO.Value));
+        VO.assert(type.hasType(VO.Data).not());
+        VO.assert(type.hasType(VO.Void).not());
+        VO.assert(type.hasType(VO.Unit).not());
+        VO.assert(type.hasType(VO.Boolean).not());
+        VO.assert(type.hasType(VO.Number).not());
+        VO.assert(type.hasType(VO.String).not());
+
         // Value
+        VO.assert(value.hasType(VO.Type));
         VO.assert(value.hasType(VO.Value));
         VO.assert(value.hasType(VO.Data).not());
         VO.assert(value.hasType(VO.Void).not());
@@ -369,6 +409,7 @@ VO.selfTest = (function ()
         VO.assert(value.hasType(VO.String).not());
 
         // Data
+        VO.assert(data.hasType(VO.Type));
         VO.assert(data.hasType(VO.Value));
         VO.assert(data.hasType(VO.Data));
         VO.assert(data.hasType(VO.Void).not());
@@ -380,8 +421,9 @@ VO.selfTest = (function ()
         VO.assert(data.asJSON().equals(VO.emptyString));
 
         // Void
+        VO.assert(VO.void.hasType(VO.Type));
         VO.assert(VO.void.hasType(VO.Value));
-        VO.assert(VO.void.hasType(VO.Data));
+        VO.assert(VO.void.hasType(VO.Data).not());
         VO.assert(VO.void.hasType(VO.Void));
         VO.assert(VO.void.hasType(VO.Unit).not());
         VO.assert(VO.void.hasType(VO.Boolean).not());
@@ -402,9 +444,8 @@ VO.selfTest = (function ()
         VO.assert(VO.Boolean(VO.void === new VO.Void()));
         VO.assert(VO.Boolean(new VO.Void() === new VO.Void()));
 
-        VO.assert(VO.void.asJSON().equals(VO.emptyString));
-
         // Unit
+        VO.assert(VO.unit.hasType(VO.Type));
         VO.assert(VO.unit.hasType(VO.Value));
         VO.assert(VO.unit.hasType(VO.Data));
         VO.assert(VO.unit.hasType(VO.Void).not());
@@ -430,6 +471,7 @@ VO.selfTest = (function ()
         VO.assert(VO.unit.asJSON().equals(VO.String("null")));
 
         // Boolean
+        VO.assert(VO.true.hasType(VO.Type));
         VO.assert(VO.true.hasType(VO.Value));
         VO.assert(VO.true.hasType(VO.Data));
         VO.assert(VO.true.hasType(VO.Void).not());
@@ -450,6 +492,7 @@ VO.selfTest = (function ()
 
         VO.assert(VO.true.asJSON().equals(VO.String("true")));
 
+        VO.assert(VO.false.hasType(VO.Type));
         VO.assert(VO.false.hasType(VO.Value));
         VO.assert(VO.false.hasType(VO.Data));
         VO.assert(VO.false.hasType(VO.Void).not());
@@ -484,6 +527,7 @@ VO.selfTest = (function ()
         VO.assert(VO.true.xor(VO.true).not());
 
         // Number
+        VO.assert(VO.zero.hasType(VO.Type));
         VO.assert(VO.zero.hasType(VO.Value));
         VO.assert(VO.zero.hasType(VO.Data));
         VO.assert(VO.zero.hasType(VO.Void).not());
@@ -541,6 +585,7 @@ VO.selfTest = (function ()
         VO.assert((new VO.Number(42)).asJSON().equals(new VO.String("42")));
 
         // String
+        VO.assert(VO.emptyString.hasType(VO.Type));
         VO.assert(VO.emptyString.hasType(VO.Value));
         VO.assert(VO.emptyString.hasType(VO.Data));
         VO.assert(VO.emptyString.hasType(VO.Void).not());
