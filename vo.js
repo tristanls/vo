@@ -54,12 +54,27 @@ const valuePrototype =
 
 const typePrototype =
 {
-    constructor: function Type()
+    constructor: function Type(prototype)
     {
         if (!(this instanceof Type))
         {
-            return new Type();
+            return new Type(prototype);
         }
+        if (prototype === undefined)
+        {
+            return;
+        }
+        const newType = Object.assign({},
+            valuePrototype,
+            typePrototype,
+            prototype
+        );
+        newType.constructor = Object.assign(newType.constructor,
+            valuePrototype,
+            typePrototype
+        );
+        newType.constructor.prototype = newType;
+        return newType.constructor;
     },
     hasType(type)
     {
@@ -82,19 +97,13 @@ const typePrototype =
     }
 };
 
-VO.Value = (function (self = {})
-{
-    self = Object.assign(self,
-        typePrototype,
-        valuePrototype
-    );
-    self.constructor.prototype = self;
-    return self.constructor;
-})();
-
 VO.Type = (function (self = {})
 {
     self = Object.assign(self,
+        valuePrototype,
+        typePrototype
+    );
+    self.constructor = Object.assign(self.constructor,
         valuePrototype,
         typePrototype
     );
@@ -102,283 +111,263 @@ VO.Type = (function (self = {})
     return self.constructor;
 })();
 
-VO.Data = (function (self = {})
-{
-    self = Object.assign(self,
-        VO.Value.prototype,
-        {
-            constructor: function Data()
-            {
-                if (!(this instanceof Data))
-                {
-                    return new Data();
-                }
-            },
-            asJSON()
-            {
-                VO.assert(this.hasType(VO.Data));
-                return new VO.String(JSON.stringify(this._value));
-            }
-        }
-    );
-    self.constructor.prototype = self;
-    return self.constructor;
-})();
+VO.Value = VO.Type(valuePrototype);
 
-VO.Void = (function (self = {})
-{
-    self = Object.assign(self,
-        VO.Type.prototype,
+VO.Data = VO.Type(Object.assign({},
+    VO.Value.prototype,
+    {
+        constructor: function Data()
         {
-            distinguished: ordinal(),
-            constructor: function Void()
+            if (!(this instanceof Data))
             {
-                if (!(this instanceof Void))
-                {
-                    return new Void();
-                }
-                if (VO.void === undefined)
-                {
-                    VO.void = deepFreeze(this);
-                }
-                return VO.void;
+                return new Data();
             }
+        },
+        asJSON()
+        {
+            VO.assert(this.hasType(VO.Data));
+            return new VO.String(JSON.stringify(this._value));
         }
-    );
-    self.constructor.prototype = self;
-    VO.void = new self.constructor();
-    return self.constructor;
-})();
+    }
+));
 
-VO.Unit = (function (self = {})
-{
-    self = Object.assign(self,
-        VO.Data.prototype,
+VO.Void = VO.Type(Object.assign({},
+    VO.Type.prototype,
+    {
+        distinguished: ordinal(),
+        constructor: function Void()
         {
-            distinguished: ordinal(),
-            constructor: function Unit()
+            if (!(this instanceof Void))
             {
-                if (VO.unit === undefined)
-                {
-                    this._value = null;
-                    VO.unit = deepFreeze(this);
-                }
-                return VO.unit;
+                return new Void();
             }
+            if (VO.void === undefined)
+            {
+                VO.void = deepFreeze(this);
+            }
+            return VO.void;
         }
-    );
-    self.constructor.prototype = self;
-    VO.unit = new self.constructor();
-    return self.constructor;
-})();
+    }
+));
+VO.void = VO.Void();
 
-VO.Boolean = (function (self = {})
-{
-    self = Object.assign(self,
-        VO.Data.prototype,
+VO.Unit = VO.Type(Object.assign({},
+    VO.Data.prototype,
+    {
+        distinguished: ordinal(),
+        constructor: function Unit()
         {
-            constructor: function Boolean(value)
+            if (!(this instanceof Unit))
             {
-                if (value)
-                {
-                    if (VO.true === undefined)
-                    {
-                        this._value = true;
-                        VO.true = deepFreeze(this);
-                    }
-                    return VO.true;
-                }
-                else
-                {
-                    if (VO.false === undefined)
-                    {
-                        this._value = false;
-                        VO.false = deepFreeze(this);
-                    }
-                    return VO.false;
-                }
-            },
-            not()
-            {
-                return this === VO.true ? VO.false : VO.true;
-            },
-            and(that)
-            {
-                VO.assert(that.hasType(VO.Boolean));
-                return VO.Boolean(this === that && this === VO.true);
-            },
-            or(that)
-            {
-                VO.assert(that.hasType(VO.Boolean));
-                return VO.Boolean((this === VO.true) || (that === VO.true));
-            },
-            xor(that)
-            {
-                VO.assert(that.hasType(VO.Boolean));
-                return VO.Boolean(this.or(that)._value && this !== that);
+                return new Unit();
             }
+            if (VO.unit === undefined)
+            {
+                this._value = null;
+                VO.unit = deepFreeze(this);
+            }
+            return VO.unit;
         }
-    );
-    self.constructor.prototype = self;
-    VO.true = new self.constructor(true);
-    VO.false = new self.constructor(false);
-    return self.constructor;
-})();
+    }
+));
+VO.unit = VO.Unit();
 
-VO.Number = (function (self = {})
-{
-    self = Object.assign(self,
-        VO.Data.prototype,
+VO.Boolean = VO.Type(Object.assign({},
+    VO.Data.prototype,
+    {
+        constructor: function Boolean(value)
         {
-            constructor: function Number(value)
+            if (!(this instanceof Boolean))
             {
-                if (!(this instanceof Number))
-                {
-                    return new Number(value);
-                }
-                VO.assert(VO.Boolean(typeof value === "number"));
-                this._value = value;
-                deepFreeze(this);
-            },
-            equals(that)
-            {
-                if (this === that)
-                {
-                    return VO.true;
-                }
-                if (that.hasType(VO.Number) === VO.false)
-                {
-                    return VO.false;
-                }
-                return VO.Boolean(this._value === that._value);
-            },
-            lessThan(that)
-            {
-                VO.assert(that.hasType(VO.Number));
-                return VO.Boolean(this._value < that._value);
-            },
-            lessEqual(that)
-            {
-                VO.assert(that.hasType(VO.Number));
-                return VO.Boolean(this._value <= that._value);
-            },
-            greaterThan(that)
-            {
-                VO.assert(that.hasType(VO.Number));
-                return VO.Boolean(this._value > that._value);
-            },
-            greaterEqual(that)
-            {
-                VO.assert(that.hasType(VO.Number));
-                return VO.Boolean(this._value >= that._value);
-            },
-            plus(that)
-            {
-                VO.assert(that.hasType(VO.Number));
-                return new VO.Number(this._value + that._value);
-            },
-            times(that)
-            {
-                VO.assert(that.hasType(VO.Number));
-                return new VO.Number(this._value * that._value);
+                return new Boolean(value);
             }
+            if (value)
+            {
+                if (VO.true === undefined)
+                {
+                    this._value = true;
+                    VO.true = deepFreeze(this);
+                }
+                return VO.true;
+            }
+            else
+            {
+                if (VO.false === undefined)
+                {
+                    this._value = false;
+                    VO.false = deepFreeze(this);
+                }
+                return VO.false;
+            }
+        },
+        not()
+        {
+            return this === VO.true ? VO.false : VO.true;
+        },
+        and(that)
+        {
+            VO.assert(that.hasType(VO.Boolean));
+            return VO.Boolean(this === that && this === VO.true);
+        },
+        or(that)
+        {
+            VO.assert(that.hasType(VO.Boolean));
+            return VO.Boolean((this === VO.true) || (that === VO.true));
+        },
+        xor(that)
+        {
+            VO.assert(that.hasType(VO.Boolean));
+            return VO.Boolean(this.or(that)._value && this !== that);
         }
-    );
-    self.constructor.prototype = self;
-    VO.minusOne = new self.constructor(-1);
-    VO.zero = new self.constructor(0);
-    VO.one = new self.constructor(1);
-    VO.two = new self.constructor(2);
-    return self.constructor;
-})();
+    }
+));
+VO.true = VO.Boolean(true);
+VO.false = VO.Boolean(false);
 
-VO.String = (function (self = {})
-{
-    self = Object.assign(self,
-        VO.Data.prototype,
+VO.Number = VO.Type(Object.assign({},
+    VO.Data.prototype,
+    {
+        constructor: function Number(value)
         {
-            constructor: function String(value)
+            if (!(this instanceof Number))
             {
-                if (!(this instanceof String))
-                {
-                    return new String(value);
-                }
-                if (value === undefined)
-                {
-                    return VO.emptyString;
-                }
-                VO.assert(VO.Boolean(typeof value === "string"));
-                this._value = value;
-                deepFreeze(this);
-            },
-            equals(that)
-            {
-                if (this === that)
-                {
-                    return VO.true;
-                }
-                if (that.hasType(VO.String) === VO.false)
-                {
-                    return VO.false;
-                }
-                return VO.Boolean(this._value === that._value);
-            },
-            length()
-            {
-                VO.assert(this.hasType(VO.String));
-                return new VO.Number(this._value.length);
-            },
-            value(offset)
-            {
-                VO.assert(VO.zero.lessEqual(offset));
-                VO.assert(offset.lessEqual(this.length()));
-                return new VO.Number(this._value.codePointAt(offset._value));
-            },
-            concatenate(that)
-            {
-                VO.assert(that.hasType(VO.String));
-                return new VO.String(this._value + that._value);
-            },
-            skip(count)
-            {
-                VO.assert(count.hasType(VO.Number));
-                VO.assert(count.greaterEqual(VO.zero));
-                if (count.greaterEqual(this.length()) === VO.true)
-                {
-                    return VO.emptyString;
-                }
-                return new VO.String(this._value.slice(count._value, this.length()._value));
-            },
-            take(count)
-            {
-                VO.assert(count.hasType(VO.Number));
-                VO.assert(count.greaterEqual(VO.zero));
-                VO.assert(count.lessEqual(this.length()));
-                return new VO.String(this._value.slice(0, count._value));
-            },
-            extract(interval)
-            {
-                // TODO: need VO.Object
-            },
-            append(value)
-            {
-                VO.assert(value.hasType(VO.Number));
-                return new VO.String(this._value + String.fromCodePoint(value._value));
-            },
-            bind(value)
-            {
-                // TODO: need VO.Object
-            },
-            asArray()
-            {
-                // TODO: need VO.Array
+                return new Number(value);
             }
+            VO.assert(VO.Boolean(typeof value === "number"));
+            this._value = value;
+            deepFreeze(this);
+        },
+        equals(that)
+        {
+            if (this === that)
+            {
+                return VO.true;
+            }
+            if (that.hasType(VO.Number) === VO.false)
+            {
+                return VO.false;
+            }
+            return VO.Boolean(this._value === that._value);
+        },
+        lessThan(that)
+        {
+            VO.assert(that.hasType(VO.Number));
+            return VO.Boolean(this._value < that._value);
+        },
+        lessEqual(that)
+        {
+            VO.assert(that.hasType(VO.Number));
+            return VO.Boolean(this._value <= that._value);
+        },
+        greaterThan(that)
+        {
+            VO.assert(that.hasType(VO.Number));
+            return VO.Boolean(this._value > that._value);
+        },
+        greaterEqual(that)
+        {
+            VO.assert(that.hasType(VO.Number));
+            return VO.Boolean(this._value >= that._value);
+        },
+        plus(that)
+        {
+            VO.assert(that.hasType(VO.Number));
+            return new VO.Number(this._value + that._value);
+        },
+        times(that)
+        {
+            VO.assert(that.hasType(VO.Number));
+            return new VO.Number(this._value * that._value);
         }
-    );
-    self.constructor.prototype = self;
-    VO.emptyString = new self.constructor("");
-    return self.constructor;
-})();
+    }
+));
+VO.minusOne = VO.Number(-1);
+VO.zero = VO.Number(0);
+VO.one = VO.Number(1);
+VO.two = VO.Number(2);
+
+VO.String = VO.Type(Object.assign({},
+    VO.Data.prototype,
+    {
+        constructor: function String(value)
+        {
+            if (!(this instanceof String))
+            {
+                return new String(value);
+            }
+            if (value === undefined)
+            {
+                return VO.emptyString;
+            }
+            VO.assert(VO.Boolean(typeof value === "string"));
+            this._value = value;
+            deepFreeze(this);
+        },
+        equals(that)
+        {
+            if (this === that)
+            {
+                return VO.true;
+            }
+            if (that.hasType(VO.String) === VO.false)
+            {
+                return VO.false;
+            }
+            return VO.Boolean(this._value === that._value);
+        },
+        length()
+        {
+            VO.assert(this.hasType(VO.String));
+            return new VO.Number(this._value.length);
+        },
+        value(offset)
+        {
+            VO.assert(VO.zero.lessEqual(offset));
+            VO.assert(offset.lessEqual(this.length()));
+            return new VO.Number(this._value.codePointAt(offset._value));
+        },
+        concatenate(that)
+        {
+            VO.assert(that.hasType(VO.String));
+            return new VO.String(this._value + that._value);
+        },
+        skip(count)
+        {
+            VO.assert(count.hasType(VO.Number));
+            VO.assert(count.greaterEqual(VO.zero));
+            if (count.greaterEqual(this.length()) === VO.true)
+            {
+                return VO.emptyString;
+            }
+            return new VO.String(this._value.slice(count._value, this.length()._value));
+        },
+        take(count)
+        {
+            VO.assert(count.hasType(VO.Number));
+            VO.assert(count.greaterEqual(VO.zero));
+            VO.assert(count.lessEqual(this.length()));
+            return new VO.String(this._value.slice(0, count._value));
+        },
+        extract(interval)
+        {
+            // TODO: need VO.Object
+        },
+        append(value)
+        {
+            VO.assert(value.hasType(VO.Number));
+            return new VO.String(this._value + String.fromCodePoint(value._value));
+        },
+        bind(value)
+        {
+            // TODO: need VO.Object
+        },
+        asArray()
+        {
+            // TODO: need VO.Array
+        }
+    }
+));
+VO.emptyString = VO.String("");
 
 VO.selfTest = (function ()
 {
@@ -389,6 +378,15 @@ VO.selfTest = (function ()
     return function selfTest()
     {
         // Type
+        VO.assert(VO.Type.equals(VO.Type));
+        VO.assert(VO.Type.equals(VO.Value).not());
+        VO.assert(VO.Type.equals(VO.Data).not());
+        VO.assert(VO.Type.equals(VO.Void).not());
+        VO.assert(VO.Type.equals(VO.Unit).not());
+        VO.assert(VO.Type.equals(VO.Boolean).not());
+        VO.assert(VO.Type.equals(VO.Number).not());
+        VO.assert(VO.Type.equals(VO.String).not());
+
         VO.assert(type.hasType(VO.Type));
         VO.assert(type.hasType(VO.Value));
         VO.assert(type.hasType(VO.Data).not());
@@ -399,6 +397,15 @@ VO.selfTest = (function ()
         VO.assert(type.hasType(VO.String).not());
 
         // Value
+        VO.assert(VO.Value.equals(VO.Type).not());
+        VO.assert(VO.Value.equals(VO.Value));
+        VO.assert(VO.Value.equals(VO.Data).not());
+        VO.assert(VO.Value.equals(VO.Void).not());
+        VO.assert(VO.Value.equals(VO.Unit).not());
+        VO.assert(VO.Value.equals(VO.Boolean).not());
+        VO.assert(VO.Value.equals(VO.Number).not());
+        VO.assert(VO.Value.equals(VO.String).not());
+
         VO.assert(value.hasType(VO.Type));
         VO.assert(value.hasType(VO.Value));
         VO.assert(value.hasType(VO.Data).not());
@@ -409,6 +416,15 @@ VO.selfTest = (function ()
         VO.assert(value.hasType(VO.String).not());
 
         // Data
+        VO.assert(VO.Data.equals(VO.Type).not());
+        VO.assert(VO.Data.equals(VO.Value).not());
+        VO.assert(VO.Data.equals(VO.Data));
+        VO.assert(VO.Data.equals(VO.Void).not());
+        VO.assert(VO.Data.equals(VO.Unit).not());
+        VO.assert(VO.Data.equals(VO.Boolean).not());
+        VO.assert(VO.Data.equals(VO.Number).not());
+        VO.assert(VO.Data.equals(VO.String).not());
+
         VO.assert(data.hasType(VO.Type));
         VO.assert(data.hasType(VO.Value));
         VO.assert(data.hasType(VO.Data));
@@ -421,6 +437,15 @@ VO.selfTest = (function ()
         VO.assert(data.asJSON().equals(VO.emptyString));
 
         // Void
+        VO.assert(VO.Void.equals(VO.Type).not());
+        VO.assert(VO.Void.equals(VO.Value).not());
+        VO.assert(VO.Void.equals(VO.Data).not());
+        VO.assert(VO.Void.equals(VO.Void));
+        VO.assert(VO.Void.equals(VO.Unit).not());
+        VO.assert(VO.Void.equals(VO.Boolean).not());
+        VO.assert(VO.Void.equals(VO.Number).not());
+        VO.assert(VO.Void.equals(VO.String).not());
+
         VO.assert(VO.void.hasType(VO.Type));
         VO.assert(VO.void.hasType(VO.Value));
         VO.assert(VO.void.hasType(VO.Data).not());
@@ -445,6 +470,15 @@ VO.selfTest = (function ()
         VO.assert(VO.Boolean(new VO.Void() === new VO.Void()));
 
         // Unit
+        VO.assert(VO.Unit.equals(VO.Type).not());
+        VO.assert(VO.Unit.equals(VO.Value).not());
+        VO.assert(VO.Unit.equals(VO.Data).not());
+        VO.assert(VO.Unit.equals(VO.Void).not());
+        VO.assert(VO.Unit.equals(VO.Unit));
+        VO.assert(VO.Unit.equals(VO.Boolean).not());
+        VO.assert(VO.Unit.equals(VO.Number).not());
+        VO.assert(VO.Unit.equals(VO.String).not());
+
         VO.assert(VO.unit.hasType(VO.Type));
         VO.assert(VO.unit.hasType(VO.Value));
         VO.assert(VO.unit.hasType(VO.Data));
@@ -471,6 +505,15 @@ VO.selfTest = (function ()
         VO.assert(VO.unit.asJSON().equals(VO.String("null")));
 
         // Boolean
+        VO.assert(VO.Boolean.equals(VO.Type).not());
+        VO.assert(VO.Boolean.equals(VO.Value).not());
+        VO.assert(VO.Boolean.equals(VO.Data).not());
+        VO.assert(VO.Boolean.equals(VO.Void).not());
+        VO.assert(VO.Boolean.equals(VO.Unit).not());
+        VO.assert(VO.Boolean.equals(VO.Boolean));
+        VO.assert(VO.Boolean.equals(VO.Number).not());
+        VO.assert(VO.Boolean.equals(VO.String).not());
+
         VO.assert(VO.true.hasType(VO.Type));
         VO.assert(VO.true.hasType(VO.Value));
         VO.assert(VO.true.hasType(VO.Data));
@@ -527,6 +570,15 @@ VO.selfTest = (function ()
         VO.assert(VO.true.xor(VO.true).not());
 
         // Number
+        VO.assert(VO.Number.equals(VO.Type).not());
+        VO.assert(VO.Number.equals(VO.Value).not());
+        VO.assert(VO.Number.equals(VO.Data).not());
+        VO.assert(VO.Number.equals(VO.Void).not());
+        VO.assert(VO.Number.equals(VO.Unit).not());
+        VO.assert(VO.Number.equals(VO.Boolean).not());
+        VO.assert(VO.Number.equals(VO.Number));
+        VO.assert(VO.Number.equals(VO.String).not());
+
         VO.assert(VO.zero.hasType(VO.Type));
         VO.assert(VO.zero.hasType(VO.Value));
         VO.assert(VO.zero.hasType(VO.Data));
@@ -585,6 +637,15 @@ VO.selfTest = (function ()
         VO.assert((new VO.Number(42)).asJSON().equals(new VO.String("42")));
 
         // String
+        VO.assert(VO.String.equals(VO.Type).not());
+        VO.assert(VO.String.equals(VO.Value).not());
+        VO.assert(VO.String.equals(VO.Data).not());
+        VO.assert(VO.String.equals(VO.Void).not());
+        VO.assert(VO.String.equals(VO.Unit).not());
+        VO.assert(VO.String.equals(VO.Boolean).not());
+        VO.assert(VO.String.equals(VO.Number).not());
+        VO.assert(VO.String.equals(VO.String));
+
         VO.assert(VO.emptyString.hasType(VO.Type));
         VO.assert(VO.emptyString.hasType(VO.Value));
         VO.assert(VO.emptyString.hasType(VO.Data));
