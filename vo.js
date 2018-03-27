@@ -95,8 +95,8 @@ VO.Value = (function (self = {})
 VO.Type = (function (self = {})
 {
     self = Object.assign(self,
-        typePrototype,
-        valuePrototype
+        valuePrototype,
+        typePrototype
     );
     self.constructor.prototype = self;
     return self.constructor;
