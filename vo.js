@@ -378,6 +378,15 @@ VO.selfTest = (function ()
     return function selfTest()
     {
         // Type
+        VO.assert(VO.Type.hasType(VO.Type));
+        VO.assert(VO.Type.hasType(VO.Value));
+        VO.assert(VO.Type.hasType(VO.Data).not());
+        VO.assert(VO.Type.hasType(VO.Void).not());
+        VO.assert(VO.Type.hasType(VO.Unit).not());
+        VO.assert(VO.Type.hasType(VO.Boolean).not());
+        VO.assert(VO.Type.hasType(VO.Number).not());
+        VO.assert(VO.Type.hasType(VO.String).not());
+
         VO.assert(VO.Type.equals(VO.Type));
         VO.assert(VO.Type.equals(VO.Value).not());
         VO.assert(VO.Type.equals(VO.Data).not());
@@ -397,6 +406,15 @@ VO.selfTest = (function ()
         VO.assert(type.hasType(VO.String).not());
 
         // Value
+        VO.assert(VO.Value.hasType(VO.Type));
+        VO.assert(VO.Value.hasType(VO.Value));
+        VO.assert(VO.Value.hasType(VO.Data).not());
+        VO.assert(VO.Value.hasType(VO.Void).not());
+        VO.assert(VO.Value.hasType(VO.Unit).not());
+        VO.assert(VO.Value.hasType(VO.Boolean).not());
+        VO.assert(VO.Value.hasType(VO.Number).not());
+        VO.assert(VO.Value.hasType(VO.String).not());
+
         VO.assert(VO.Value.equals(VO.Type).not());
         VO.assert(VO.Value.equals(VO.Value));
         VO.assert(VO.Value.equals(VO.Data).not());
@@ -416,6 +434,15 @@ VO.selfTest = (function ()
         VO.assert(value.hasType(VO.String).not());
 
         // Data
+        VO.assert(VO.Data.hasType(VO.Type));
+        VO.assert(VO.Data.hasType(VO.Value));
+        VO.assert(VO.Data.hasType(VO.Data).not());
+        VO.assert(VO.Data.hasType(VO.Void).not());
+        VO.assert(VO.Data.hasType(VO.Unit).not());
+        VO.assert(VO.Data.hasType(VO.Boolean).not());
+        VO.assert(VO.Data.hasType(VO.Number).not());
+        VO.assert(VO.Data.hasType(VO.String).not());
+
         VO.assert(VO.Data.equals(VO.Type).not());
         VO.assert(VO.Data.equals(VO.Value).not());
         VO.assert(VO.Data.equals(VO.Data));
@@ -437,6 +464,15 @@ VO.selfTest = (function ()
         VO.assert(data.asJSON().equals(VO.emptyString));
 
         // Void
+        VO.assert(VO.Void.hasType(VO.Type));
+        VO.assert(VO.Void.hasType(VO.Value));
+        VO.assert(VO.Void.hasType(VO.Data).not());
+        VO.assert(VO.Void.hasType(VO.Void).not());
+        VO.assert(VO.Void.hasType(VO.Unit).not());
+        VO.assert(VO.Void.hasType(VO.Boolean).not());
+        VO.assert(VO.Void.hasType(VO.Number).not());
+        VO.assert(VO.Void.hasType(VO.String).not());
+
         VO.assert(VO.Void.equals(VO.Type).not());
         VO.assert(VO.Void.equals(VO.Value).not());
         VO.assert(VO.Void.equals(VO.Data).not());
@@ -470,6 +506,15 @@ VO.selfTest = (function ()
         VO.assert(VO.Boolean(new VO.Void() === new VO.Void()));
 
         // Unit
+        VO.assert(VO.Unit.hasType(VO.Type));
+        VO.assert(VO.Unit.hasType(VO.Value));
+        VO.assert(VO.Unit.hasType(VO.Data).not());
+        VO.assert(VO.Unit.hasType(VO.Void).not());
+        VO.assert(VO.Unit.hasType(VO.Unit).not());
+        VO.assert(VO.Unit.hasType(VO.Boolean).not());
+        VO.assert(VO.Unit.hasType(VO.Number).not());
+        VO.assert(VO.Unit.hasType(VO.String).not());
+
         VO.assert(VO.Unit.equals(VO.Type).not());
         VO.assert(VO.Unit.equals(VO.Value).not());
         VO.assert(VO.Unit.equals(VO.Data).not());
@@ -505,6 +550,15 @@ VO.selfTest = (function ()
         VO.assert(VO.unit.asJSON().equals(VO.String("null")));
 
         // Boolean
+        VO.assert(VO.Boolean.hasType(VO.Type));
+        VO.assert(VO.Boolean.hasType(VO.Value));
+        VO.assert(VO.Boolean.hasType(VO.Data).not());
+        VO.assert(VO.Boolean.hasType(VO.Void).not());
+        VO.assert(VO.Boolean.hasType(VO.Unit).not());
+        VO.assert(VO.Boolean.hasType(VO.Boolean).not());
+        VO.assert(VO.Boolean.hasType(VO.Number).not());
+        VO.assert(VO.Boolean.hasType(VO.String).not());
+
         VO.assert(VO.Boolean.equals(VO.Type).not());
         VO.assert(VO.Boolean.equals(VO.Value).not());
         VO.assert(VO.Boolean.equals(VO.Data).not());
@@ -570,6 +624,15 @@ VO.selfTest = (function ()
         VO.assert(VO.true.xor(VO.true).not());
 
         // Number
+        VO.assert(VO.Number.hasType(VO.Type));
+        VO.assert(VO.Number.hasType(VO.Value));
+        VO.assert(VO.Number.hasType(VO.Data).not());
+        VO.assert(VO.Number.hasType(VO.Void).not());
+        VO.assert(VO.Number.hasType(VO.Unit).not());
+        VO.assert(VO.Number.hasType(VO.Boolean).not());
+        VO.assert(VO.Number.hasType(VO.Number).not());
+        VO.assert(VO.Number.hasType(VO.String).not());
+
         VO.assert(VO.Number.equals(VO.Type).not());
         VO.assert(VO.Number.equals(VO.Value).not());
         VO.assert(VO.Number.equals(VO.Data).not());
@@ -637,6 +700,15 @@ VO.selfTest = (function ()
         VO.assert((new VO.Number(42)).asJSON().equals(new VO.String("42")));
 
         // String
+        VO.assert(VO.String.hasType(VO.Type));
+        VO.assert(VO.String.hasType(VO.Value));
+        VO.assert(VO.String.hasType(VO.Data).not());
+        VO.assert(VO.String.hasType(VO.Void).not());
+        VO.assert(VO.String.hasType(VO.Unit).not());
+        VO.assert(VO.String.hasType(VO.Boolean).not());
+        VO.assert(VO.String.hasType(VO.Number).not());
+        VO.assert(VO.String.hasType(VO.String).not());
+
         VO.assert(VO.String.equals(VO.Type).not());
         VO.assert(VO.String.equals(VO.Value).not());
         VO.assert(VO.String.equals(VO.Data).not());
