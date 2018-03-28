@@ -1331,5 +1331,3 @@ VO.selfTest = (function ()
 })();
 
 deepFreeze(VO);
-
-VO.selfTest();
