@@ -398,7 +398,13 @@ VO.String = VO.Type(Object.assign({},
         },
         extract(interval)
         {
-            // TODO: need VO.Object
+            VO.assert(interval.hasType(VO.Object));
+            const from = interval.value(VO.String("from"));
+            const upto = interval.value(VO.String("upto"));
+            VO.assert(VO.zero.lessEqual(from));
+            VO.assert(from.lessEqual(upto));
+            VO.assert(upto.lessEqual(this.length()));
+            return new VO.String(Array.from(this._value).slice(from._value, upto._value).join(""));
         },
         append(value)
         {
@@ -407,7 +413,10 @@ VO.String = VO.Type(Object.assign({},
         },
         bind(value)
         {
-            // TODO: need VO.Object
+            VO.assert(value.hasType(VO.Value));
+            const obj = {};
+            obj[this._value] = value;
+            return new VO.Object(obj);
         },
         asArray()
         {
@@ -497,7 +506,13 @@ VO.Array = VO.Type(Object.assign({},
         },
         extract(interval)
         {
-            // TODO: need VO.Object
+            VO.assert(interval.hasType(VO.Object));
+            const from = interval.value(VO.String("from"));
+            const upto = interval.value(VO.String("upto"));
+            VO.assert(VO.zero.lessEqual(from));
+            VO.assert(from.lessEqual(upto));
+            VO.assert(upto.lessEqual(this.length()));
+            return new VO.Array(this._value.slice(from._value, upto._value));
         },
         append(value)
         {
@@ -1070,13 +1085,17 @@ VO.selfTest = (function ()
         VO.assert(codePointString.value(VO.Number(3)).equals(new VO.Number(119913))); // "𝑩"
         VO.assert(sampleString.value(sampleString.length().plus(VO.minusOne)).equals(new VO.Number(33)));  // "!"
         VO.assert(codePointString.value(codePointString.length().plus(VO.minusOne)).equals(new VO.Number(119914)));  // "𝑪"
-        // VO.assert(sampleString.extract(VO.fromNative({from:0, upto:0})).equals(VO.emptyString));
-        // VO.assert(sampleString.extract(VO.fromNative({from:0, upto:1})).length().equals(VO.one));
-        // VO.assert(sampleString.extract(VO.fromNative({from:1, upto:1})).length().equals(VO.zero));
-        // VO.assert(sampleString
-        //           .extract(VO.fromNative({from:0}).concatenate((new VO.String("upto")).bind(sampleString.length)))
-        //           .equals(sampleString));
-        // VO.assert(sampleString.extract(VO.fromNative({from:0, upto:5})).equals(new VO.String("Hello")));
+        VO.assert(sampleString.extract(VO.fromNative({from:0, upto:0})).equals(VO.emptyString));
+        VO.assert(sampleString.extract(VO.fromNative({from:0, upto:1})).length().equals(VO.one));
+        VO.assert(sampleString.extract(VO.fromNative({from:1, upto:1})).length().equals(VO.zero));
+        VO.assert(sampleString
+                  .extract(VO.fromNative({from:0}).concatenate((new VO.String("upto")).bind(sampleString.length())))
+                  .equals(sampleString));
+        VO.assert(codePointString
+                  .extract(VO.fromNative({from:0}).concatenate((new VO.String("upto")).bind(codePointString.length())))
+                  .equals(codePointString));
+        VO.assert(sampleString.extract(VO.fromNative({from:0, upto:5})).equals(new VO.String("Hello")));
+        VO.assert(codePointString.extract(VO.fromNative({from:0, upto:3})).equals(new VO.String("A\uD835\uDC68B")));
         VO.assert(sampleString.skip(new VO.Number(7)).take(new VO.Number(5)).equals(new VO.String("World")));
         VO.assert(codePointString.skip(new VO.Number(2)).take(new VO.Number(4)).equals(new VO.String("B\uD835\uDC69C\uD835\uDC6A")));
         VO.assert(VO.emptyString.concatenate(VO.emptyString).equals(VO.emptyString));
@@ -1090,7 +1109,7 @@ VO.selfTest = (function ()
         VO.assert(codePointString.take(new VO.Number(3))
                   .concatenate(codePointString.skip(new VO.Number(3)))
                   .equals(codePointString));
-        // VO.assert(new VO.String("foo").bind(new VO.Number(42)).equals(VO.fromNative({ "foo": 42 })));
+        VO.assert(new VO.String("foo").bind(new VO.Number(42)).equals(VO.fromNative({ "foo": 42 })));
 
         VO.assert(VO.emptyString.append(new VO.Number(72)).append(new VO.Number(105))
                   .equals(new VO.String("Hi")));
@@ -1157,12 +1176,12 @@ VO.selfTest = (function ()
         VO.assert(sampleArray.value(VO.zero).equals(VO.unit));
         VO.assert(sampleArray.value(new VO.Number(4)).equals(new VO.Number(1)));
         VO.assert(sampleArray.value(sampleArray.length().plus(VO.minusOne)).equals(VO.emptyObject));
-        // VO.assert(sampleArray.extract(VO.fromNative({from:0, upto:0})).equals(VO.emptyArray));
-        // VO.assert(sampleArray.extract(VO.fromNative({from:0, upto:1})).length.equals(VO.one));
-        // VO.assert(sampleArray.extract(VO.fromNative({from:1, upto:1})).length.equals(VO.zero));
-        // VO.assert(sampleArray
-        //           .extract(VO.fromNative({from:0}).concatenate((new VO.String("upto")).bind(sampleArray.length)))
-        //           .equals(sampleArray));
+        VO.assert(sampleArray.extract(VO.fromNative({from:0, upto:0})).equals(VO.emptyArray));
+        VO.assert(sampleArray.extract(VO.fromNative({from:0, upto:1})).length().equals(VO.one));
+        VO.assert(sampleArray.extract(VO.fromNative({from:1, upto:1})).length().equals(VO.zero));
+        VO.assert(sampleArray
+                  .extract(VO.fromNative({from:0}).concatenate((new VO.String("upto")).bind(sampleArray.length())))
+                  .equals(sampleArray));
         VO.assert(VO.emptyArray.concatenate(VO.emptyArray).equals(VO.emptyArray));
         VO.assert(sampleArray.concatenate(VO.emptyArray).equals(sampleArray));
         VO.assert(VO.emptyArray.concatenate(sampleArray).equals(sampleArray));
@@ -1237,12 +1256,12 @@ VO.selfTest = (function ()
         VO.assert(sampleObject.extract(VO.emptyArray).equals(VO.emptyObject));
         VO.assert(sampleObject.extract(VO.emptyArray.append(new VO.String("zero")))
                   .names().length().equals(VO.one));
-        // VO.assert(sampleObject.extract(VO.fromNative(["zero","one"]))
-        //           .names.length.equals(VO.two));
-        // VO.assert(sampleObject.extract(VO.fromNative(["zero","one"]))
-        //           .value(new VO.String("zero")).equals(VO.zero));
-        // VO.assert(sampleObject.extract(VO.fromNative(["zero","one"]))
-        //           .value(new VO.String("one")).equals(VO.one));
+        VO.assert(sampleObject.extract(VO.fromNative(["zero","one"]))
+                  .names().length().equals(VO.two));
+        VO.assert(sampleObject.extract(VO.fromNative(["zero","one"]))
+                  .value(new VO.String("zero")).equals(VO.zero));
+        VO.assert(sampleObject.extract(VO.fromNative(["zero","one"]))
+                  .value(new VO.String("one")).equals(VO.one));
         VO.assert(sampleObject.extract(sampleObject.names())
                   .equals(sampleObject));
         VO.assert(VO.emptyObject.concatenate(VO.emptyObject).equals(VO.emptyObject));
@@ -1266,14 +1285,17 @@ VO.selfTest = (function ()
                   .and(tmp.value(new VO.String("b")))
                   .and(tmp.value(new VO.String("c"))));
 
-        // VO.assert(VO.emptyObject
-        //           .concatenate((new VO.String("space")).bind(new VO.Number(33)))
-        //           .concatenate((new VO.String("bang")).bind(new VO.Number(34)))
-        //           .reduce(
-        //               function (n, v, x) {
-        //                   return x.times(v);
-        //               }, VO.one)
-        //           .equals(new VO.Number(33 * 34)));
+        VO.assert(
+            VO.emptyObject
+                .concatenate((new VO.String("space")).bind(new VO.Number(33)))
+                .concatenate((new VO.String("bang")).bind(new VO.Number(34)))
+                .equals(VO.fromNative(
+                    {
+                        "space": 33,
+                        "bang": 34
+                    }
+                ))
+        );
 
         VO.assert(VO.emptyObject.equals(VO.Object({})));
         VO.assert(VO.emptyObject.equals(new VO.Object({})));
