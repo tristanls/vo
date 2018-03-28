@@ -318,13 +318,14 @@ VO.String = VO.Type(Object.assign({},
         length()
         {
             VO.assert(this.hasType(VO.String));
-            return new VO.Number(this._value.length);
+            return new VO.Number(Array.from(this._value).length); // codePoint length
         },
         value(offset)
         {
+            VO.assert(offset.hasType(VO.Number));
             VO.assert(VO.zero.lessEqual(offset));
             VO.assert(offset.lessEqual(this.length()));
-            return new VO.Number(this._value.codePointAt(offset._value));
+            return new VO.Number(Array.from(this._value)[offset._value].codePointAt(0));
         },
         concatenate(that)
         {
@@ -339,14 +340,14 @@ VO.String = VO.Type(Object.assign({},
             {
                 return VO.emptyString;
             }
-            return new VO.String(this._value.slice(count._value, this.length()._value));
+            return new VO.String(Array.from(this._value).slice(count._value, this.length()._value).join(""));
         },
         take(count)
         {
             VO.assert(count.hasType(VO.Number));
             VO.assert(count.greaterEqual(VO.zero));
             VO.assert(count.lessEqual(this.length()));
-            return new VO.String(this._value.slice(0, count._value));
+            return new VO.String(Array.from(this._value).slice(0, count._value).join(""));
         },
         extract(interval)
         {
@@ -363,11 +364,106 @@ VO.String = VO.Type(Object.assign({},
         },
         asArray()
         {
-            // TODO: need VO.Array
+            let array = VO.emptyArray;
+            for (let codePoint of this._value)
+            {
+                array.append(VO.Number(codePoint.codePointAt(0)));
+            }
+            return array;
         }
     }
 ));
 VO.emptyString = VO.String("");
+
+const _Array = Array;
+VO.Array = VO.Type(Object.assign({},
+    VO.Data.prototype,
+    {
+        constructor: function Array(value)
+        {
+            if (!(this instanceof Array))
+            {
+                return new Array(value);
+            }
+            if (value === undefined)
+            {
+                return VO.emptyArray;
+            }
+            VO.assert(VO.Boolean(_Array.isArray(value)));
+            this._value = value;
+            deepFreeze(this);
+        },
+        equals(that)
+        {
+            if (this === that)
+            {
+                return VO.true;
+            }
+            if (that.hasType(VO.Array) === VO.false)
+            {
+                return VO.false;
+            }
+            if (this._value.length === that._value.length)
+            {
+                for (let i = 0; i < that._value.length; i++)
+                {
+                    if (this._value[i].equals(that._value[i]) === VO.false)
+                    {
+                        return VO.false;
+                    }
+                }
+                return VO.true;
+            }
+            return VO.false;
+        },
+        length()
+        {
+            return new VO.Number(this._value.length);
+        },
+        value(offset)
+        {
+            VO.assert(VO.zero.lessEqual(offset));
+            VO.assert(offset.lessEqual(this.length()));
+            return this._value[offset._value];
+        },
+        concatenate(that)
+        {
+            VO.assert(that.hasType(VO.Array));
+            return new VO.Array(this._value.concat(that._value));
+        },
+        skip(count)
+        {
+            VO.assert(count.hasType(VO.Number));
+            VO.assert(count.greaterEqual(VO.zero));
+            if (count.greaterEqual(this.length()) === VO.true)
+            {
+                return VO.emptyArray;
+            }
+            return new VO.Array(this._value.slice(count._value, this.length()._value));
+        },
+        take(count)
+        {
+            VO.assert(count.hasType(VO.Number));
+            VO.assert(count.greaterEqual(VO.zero))
+            VO.assert(count.lessEqual(this.length()));
+            return new VO.Array(this._value.slice(0, count._value));
+        },
+        extract(interval)
+        {
+            // TODO: need VO.Object
+        },
+        append(value)
+        {
+            VO.assert(value.hasType(VO.Value));
+            return new VO.Array(this._value.concat(value));
+        },
+        asString()
+        {
+            return this._value.reduce((str, e) => str.append(e), VO.emptyString);
+        }
+    }
+));
+VO.emptyArray = VO.Array([]);
 
 VO.selfTest = (function ()
 {
@@ -375,6 +471,7 @@ VO.selfTest = (function ()
     const value = new VO.Value();
     const data = new VO.Data();
     const sampleString = new VO.String("Hello, World!");
+    const codePointString = new VO.String("A\uD835\uDC68B\uD835\uDC69C\uD835\uDC6A"); // "A𝑨B𝑩C𝑪"
     return function selfTest()
     {
         // Type
@@ -738,9 +835,13 @@ VO.selfTest = (function ()
 
         VO.assert(VO.emptyString.length().equals(VO.zero));
         VO.assert(sampleString.length().equals(new VO.Number(13)));
+        VO.assert(codePointString.length().equals(new VO.Number(6)));
         VO.assert(sampleString.value(VO.zero).equals(new VO.Number(72)));  // "H"
+        VO.assert(codePointString.value(VO.zero).equals(new VO.Number(65))); // "A"
         VO.assert(sampleString.value(new VO.Number(6)).equals(new VO.Number(32)));  // " "
+        VO.assert(codePointString.value(VO.Number(3)).equals(new VO.Number(119913))); // "𝑩"
         VO.assert(sampleString.value(sampleString.length().plus(VO.minusOne)).equals(new VO.Number(33)));  // "!"
+        VO.assert(codePointString.value(codePointString.length().plus(VO.minusOne)).equals(new VO.Number(119914)));  // "𝑪"
         // VO.assert(sampleString.extract(VO.fromNative({from:0, upto:0})).equals(VO.emptyString));
         // VO.assert(sampleString.extract(VO.fromNative({from:0, upto:1})).length().equals(VO.one));
         // VO.assert(sampleString.extract(VO.fromNative({from:1, upto:1})).length().equals(VO.zero));
@@ -749,16 +850,24 @@ VO.selfTest = (function ()
         //           .equals(sampleString));
         // VO.assert(sampleString.extract(VO.fromNative({from:0, upto:5})).equals(new VO.String("Hello")));
         VO.assert(sampleString.skip(new VO.Number(7)).take(new VO.Number(5)).equals(new VO.String("World")));
+        VO.assert(codePointString.skip(new VO.Number(2)).take(new VO.Number(4)).equals(new VO.String("B\uD835\uDC69C\uD835\uDC6A")));
         VO.assert(VO.emptyString.concatenate(VO.emptyString).equals(VO.emptyString));
         VO.assert(sampleString.concatenate(VO.emptyString).equals(sampleString));
+        VO.assert(codePointString.concatenate(VO.emptyString).equals(codePointString));
         VO.assert(VO.emptyString.concatenate(sampleString).equals(sampleString));
+        VO.assert(VO.emptyString.concatenate(codePointString).equals(codePointString));
         VO.assert(sampleString.take(new VO.Number(6))
                   .concatenate(sampleString.skip(new VO.Number(6)))
                   .equals(sampleString));
+        VO.assert(codePointString.take(new VO.Number(3))
+                  .concatenate(codePointString.skip(new VO.Number(3)))
+                  .equals(codePointString));
         // VO.assert(new VO.String("foo").bind(new VO.Number(42)).equals(VO.fromNative({ "foo": 42 })));
 
         VO.assert(VO.emptyString.append(new VO.Number(72)).append(new VO.Number(105))
                   .equals(new VO.String("Hi")));
+        VO.assert(VO.emptyString.append(new VO.Number(119913)).append(new VO.Number(119914))
+                  .equals(new VO.String("𝑩𝑪")));
         // VO.assert(sampleString.reduce(
         //               function (c, x) {
         //                   return x.plus(VO.one);
@@ -772,6 +881,7 @@ VO.selfTest = (function ()
 
         VO.assert(VO.emptyString.asJSON().equals(new VO.String('""')));
         VO.assert(sampleString.asJSON().equals(new VO.String('"Hello, World!"')));
+        VO.assert(codePointString.asJSON().equals(new VO.String('"A\uD835\uDC68B\uD835\uDC69C\uD835\uDC6A"')));
         VO.assert((new VO.String(" \r\n")).asJSON().equals(new VO.String('" \\r\\n"')));
     };
 })();
