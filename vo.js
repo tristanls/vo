@@ -532,7 +532,7 @@ VO.Array = VO.Type(Object.assign({},
 VO.emptyArray = VO.Array([]);
 
 const _Object = Object;
-VO.Object = VO.Type(_Object.assign({},
+VO.Object = VO.Type(Object.assign({},
     VO.Data.prototype,
     {
         constructor: function Object(value)
