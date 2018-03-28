@@ -601,7 +601,7 @@ VO.Object = VO.Type(Object.assign({},
         extract(names)
         {
             VO.assert(names.hasType(VO.Array));
-            let obj = {};
+            const obj = {};
             for (let i = 0; i < names.length()._value; i++)
             {
                 const name = names.value(VO.Number(i));
@@ -621,6 +621,187 @@ VO.Object = VO.Type(Object.assign({},
     }
 ));
 VO.emptyObject = VO.Object({});
+
+VO.Expression = VO.Type(Object.assign({},
+    VO.Value.prototype,
+    {
+        constructor: function Expression()
+        {
+            if (!(this instanceof Expression))
+            {
+                return new Expression();
+            }
+        },
+        evaluate()
+        {
+            throw new Error("Not Implemented");
+        }
+    }
+));
+
+VO.ValueExpr = VO.Type(Object.assign({},
+    VO.Expression.prototype,
+    {
+        constructor: function ValueExpr(value)
+        {
+            if (!(this instanceof ValueExpr))
+            {
+                return new ValueExpr(value);
+            }
+            VO.assert(value.hasType(VO.Value));
+            this._value = value;
+        },
+        evaluate()
+        {
+            return this._value;
+        }
+    }
+));
+
+VO.VariableExpr = VO.Type(Object.assign({},
+    VO.Expression.prototype,
+    {
+        constructor: function VariableExpr(name)
+        {
+            if (!(this instanceof VariableExpr))
+            {
+                return new VariableExpr(name);
+            }
+            VO.assert(name.hasType(VO.String));
+            this._name = name;
+        },
+        evaluate(context)
+        {
+            return context.value(this._name);
+        }
+    }
+));
+
+VO.CombineExpr = VO.Type(Object.assign({},
+    VO.Expression.prototype,
+    {
+        constructor: function CombineExpr(expr, data)
+        {
+            if (!(this instanceof CombineExpr))
+            {
+                return new CombineExpr(expr, data);
+            }
+            VO.assert(expr.hasType(VO.Expression));
+            VO.assert(data.hasType(VO.Value));
+            this._expr = expr;
+            this._data = data;
+        },
+        evaluate(context)
+        {
+            const operation = this._expr.evaluate(context);
+            VO.assert(operation.hasType(VO.Operation));
+            return operation.operate(this._data, context);
+        }
+    }
+));
+
+VO.Operation = VO.Type(Object.assign({},
+    VO.Expression.prototype,
+    {
+        constructor: function Operation(operative)
+        {
+            if (!(this instanceof Operation))
+            {
+                return new Operation(operative);
+            }
+            VO.assert(VO.Boolean(typeof operative === "function"));
+            this._oper = operative;
+            deepFreeze(this);
+        },
+        evaluate()
+        {
+            return this; // operations evaluate to themselves
+        },
+        operate(value, context)
+        {
+            VO.assert(value.hasType(VO.Value));
+            const operative = this._oper;
+            return operative(value, context);
+        },
+        concatenate(that)
+        {
+            VO.assert(that.hasType(VO.Operation));
+            const first = this._oper;
+            const second = that._oper;
+            const composition = function composition(value, context)
+            {
+                return second(first(value, context), context);
+            };
+            return new VO.Operation(composition);
+        }
+    }
+));
+// returns unevaluted argument
+VO.quoteOper = VO.Operation(
+    function quoteOper(value)
+    {
+        VO.assert(value.hasType(VO.Value));
+        return value;
+    }
+);
+// returns array of evaluated arguments
+VO.arrayOper = VO.Operation(
+    function arrayOper(array, context)
+    {
+        VO.assert(array.hasType(VO.Array));
+        const result = [];
+        for (let i = 0; i < array.length()._value; i++)
+        {
+            const expr = array.value(VO.Number(i));
+            VO.assert(expr.hasType(VO.Expression));
+            result.push(expr.evaluate(context));
+        }
+        return new VO.Array(result);
+    }
+);
+// evaluate expression sequentially, returning the last value */
+VO.sequentialOper = VO.Operation(
+    function sequentialOper(array, context)
+    {
+        VO.assert(array.hasType(VO.Array));
+        let result = VO.unit;
+        for (let i = 0; i < array.length()._value; i++)
+        {
+            const expr = array.value(VO.Number(i));
+            VO.assert(expr.hasType(VO.Expression));
+            result = expr.evaluate(context);
+        }
+        return result;
+    }
+);
+
+VO.MethodExpr = VO.Type(Object.assign({},
+    VO.Expression.prototype,
+    {
+        constructor: function MethodExpr(target, selector)
+        {
+            if (!(this instanceof MethodExpr))
+            {
+                return new MethodExpr(target, selector);
+            }
+            VO.assert(target.hasType(VO.Expression));
+            VO.assert(selector.hasType(VO.Expression));
+            this._target = target;
+            this._selector = selector;
+        },
+        evaluate(context)
+        {
+            const selector = this._selector.evaluate(context);
+            VO.assert(selector.hasType(VO.String));
+            const target = this._target.evaluate(context);
+            VO.assert(selector.hasType(VO.Value));
+            const operation = target.method(selector);
+            const applicative = VO.arrayOper.concatenate(operation); // evaluate arguments before calling method
+            return applicative; // return applicative bound to target object
+        }
+    }
+));
+
 
 VO.selfTest = (function ()
 {
