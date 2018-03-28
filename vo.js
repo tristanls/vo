@@ -460,6 +460,10 @@ VO.Array = VO.Type(Object.assign({},
         asString()
         {
             return this._value.reduce((str, e) => str.append(e), VO.emptyString);
+        },
+        asJSON()
+        {
+            return new VO.String(`[${this._value.map(v => v.asJSON()._value).join(",")}]`);
         }
     }
 ));
@@ -990,6 +994,7 @@ VO.selfTest = (function ()
         VO.assert(VO.Boolean(VO.emptyArray === new VO.Array()));
 
         VO.assert(VO.emptyArray.asJSON().equals(new VO.String('[]')));
+        VO.assert(sampleArray.asJSON().equals(new VO.String('[null,true,false,0,1,"",[]]')));
     };
 })();
 
